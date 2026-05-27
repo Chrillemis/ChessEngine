@@ -1,22 +1,27 @@
 from libs.Training import *
 from stockfish import Stockfish
+from pathlib import Path
 
 
 def play(Elo):
     #load best model
     saved_model = Model()
 
+    script_dir = Path(__file__).resolve().parent
+
     #load best model path from your file
-    f = open("../data/savedModels/bestModel.txt", "r")
-    bestLoss = float(f.readline())
-    model_path = f.readline()
-    f.close()
+    with open(script_dir.parent / "data" / "savedModels" / "bestModel.txt", "r") as f:
+        bestLoss = float(f.readline())
+        model_path = Path(f.readline().strip())
 
-    saved_model.load_state_dict(torch.load(model_path))
+    if not model_path.is_absolute():
+        model_path = (script_dir / model_path).resolve()
+
+    saved_model.load_state_dict(torch.load(str(model_path)))
     # test elo  against stockfish
-    ELO_RATING = Elo
+    ELO_RATING = int(Elo)
 
-    stockfish = Stockfish(path=r"../stockfish/stockfish-windows-x86-64-avx2.exe")
+    stockfish = Stockfish(path=r"C:\Users\lorentsen\Documents\AML\Project\stockfish\stockfish-windows-x86-64-avx2.exe")
     stockfish.reset_engine_parameters()
     stockfish.set_elo_rating(ELO_RATING)
     stockfish.set_skill_level(0)
@@ -38,7 +43,7 @@ def play(Elo):
             break
 
         # #then get stockfish move
-        stockfish.set_position(allMoves)
+        stockfish.set_fen_position(board.fen())
         stockfishMove = stockfish.get_best_move_time(1)
         allMoves.append(stockfishMove)
         stockfishMove = chess.Move.from_uci(stockfishMove)
